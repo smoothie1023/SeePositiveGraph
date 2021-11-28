@@ -6,16 +6,44 @@ import numpy as nps
 import urllib.request
 from io import StringIO
 import numpy as np
+State="ALL"
+url = 'https://covid19.mhlw.go.jp/public/opendata/newly_confirmed_cases_daily.csv'
+data=pd.read_csv(url)
 
+#print(dataReader['testedPositive',dataReader['prefectureNameJ']==city])
+data=data[data["Prefecture"]==State]
+print(data)
+"""
+for data in df:
+    print(data)
+"""
 
+start=0
+end=32207
+interval=7
+
+left=data['Date']
+height=data['Newly confirmed cases']
+flg=plt.figure(figsize=(10.0,8.0))
+ax=flg.add_subplot(111)
+plt.tight_layout()
+ax.set_position([0.1,0.15,0.8,0.8])
+plt.bar(left,height,width=1.0,edgecolor="black",linewidth=0.1,label="Positive")
+plt.xlabel('Date')
+plt.ylabel('Positive')
+plt.xticks(rotation=90)
+plt.xticks(np.arange(0,len(data),int(interval)))
+plt.grid(b=True,axis='y',color='#666666',linestyle='-')
+plt.show()
 #url='C:\\Users\\smoothie\\Downloads\\covid19-master\\data\\prefectures.csv'
-url='https://raw.githubusercontent.com/kaz-ogiwara/covid19/master/data/prefectures.csv'
+#url = 'https://covid19.mhlw.go.jp/public/opendata/newly_confirmed_cases_daily.csv'
 """
 def read_csv(url):
     res=urllib.request.urlopen(url)
     res=res.read().decode('utf-8')
     df=pd.read_csv(StringIO(res))
     return df
+"""
 """
 #response = urllib.urlopen(url)
 #f = csv.reader(response)
@@ -68,3 +96,4 @@ plt.show()
 #plt.plot(dataReader['date'],dataReader['testedPositive'])
 #plt.show()
 #f.close()
+"""

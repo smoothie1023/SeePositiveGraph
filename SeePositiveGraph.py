@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
 import wx
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
 
 class SPGFrame(wx.Frame):
     def __init__(self):
-        super().__init__(None,wx.ID_ANY,'操作パネル',size=(600,400),style=wx.SYSTEM_MENU|wx.CAPTION|wx.CLOSE_BOX)
-        #ウィンドウ下部のステータスバー
-        self.CreateStatusBar()
-        self.SetStatusText('データ数:')
+        super().__init__(None,wx.ID_ANY,'新型コロナウイルス新規感染者の推移',size=(600,400),style=wx.SYSTEM_MENU|wx.CAPTION|wx.CLOSE_BOX)
+
         #ルートパネル
         root_panel=wx.Panel(self,wx.ID_ANY)
         #ルートパネル内に設置するパネル
-        button_panel=ButtonPanel(root_panel)
-        textbox_panel=TextBoxPanel(root_panel)
+        button_panel=LeftPanel(root_panel)
+        textbox_panel=RightPanel(root_panel)
         #ルートパネルレイアウト
         root_layout=wx.BoxSizer(wx.HORIZONTAL)
         root_layout.Add(button_panel,1,wx.TOP|wx.LEFT|wx.RIGHT,border=20)
@@ -19,11 +20,11 @@ class SPGFrame(wx.Frame):
         root_panel.SetSizer(root_layout)
 
 
-class ButtonPanel(wx.Panel):
+class LeftPanel(wx.Panel):
     def __init__(self,parent):
         super().__init__(parent,wx.ID_ANY)
         #ボタン
-        update_button     =wx.Button(self,wx.ID_ANY,'CSVを更新',size=(200,50))
+        update_button     =wx.Button(self,wx.ID_ANY,'データを更新',size=(200,50))
         showgraph_button  =wx.Button(self,wx.ID_ANY,'グラフを表示',size=(200,50))
         #ボタンのフォント変更
         font=wx.Font(20,wx.FONTFAMILY_DEFAULT,wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL)
@@ -33,21 +34,45 @@ class ButtonPanel(wx.Panel):
         update_button.SetToolTip('CSVデータを取得し更新します．')
         showgraph_button.SetToolTip('CSVデータからグラフを作成し表示します．')
         #ボタンイベント
-        #update_button.Bind(wx.EVT_BUTTON,click_update_button)
+        update_button.Bind(wx.EVT_BUTTON,click_update_button)
+        showgraph_button.Bind(wx.EVT_BUTTON,click_showgraph_button)
+        #テキストラベル
+        font=wx.Font(13,wx.FONTFAMILY_DEFAULT,wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL)
+        State_text=wx.StaticText(self,wx.ID_ANY,'グラフで表示する県')
+        State_text.SetFont(font)
+        global Sum_text
+        Sum_text=wx.StaticText(self,wx.ID_ANY,'データが取得できませんでした．')
+        try:
+            data=pd.read_csv("COVID_Data.csv")
+            Sum_text.SetLabel('データ数:{0}'.format(len(data[data["Prefecture"]=='ALL'])))
+        except:
+            pass
+        #テキストをホバーした際に出すメッセージ
+        State_text.SetToolTip('グラフで表示する県名')
+        #コンボボックス
+        element_array=('すべて','愛知県')
+        global State_combobox
+        State_combobox=wx.ComboBox(self,wx.ID_ANY,'選択してください',
+                                         choices=element_array,style=wx.CB_READONLY)
+
         #BoxSizerの文字
         box=wx.StaticBox(self,wx.ID_ANY,'操作パネル')
         #ボタンレイアウト
         layout=wx.StaticBoxSizer(box,wx.VERTICAL)
         layout.Add(update_button,1,wx.CENTER|wx.TOP|wx.BOTTOM,border=15)
         layout.Add(showgraph_button,1,wx.CENTER|wx.TOP|wx.BOTTOM,border=15)
+        layout.Add(State_text)
+        layout.Add(State_combobox,1,wx.GROW)
+        layout.Add(Sum_text,0,wx.BOTTOM)
         self.SetSizer(layout)
 
-class TextBoxPanel(wx.Panel):
+class RightPanel(wx.Panel):
     def __init__(self,parent):
         super().__init__(parent,wx.ID_ANY)
         #テキストボックス
-        min=wx.TextCtrl(self,wx.ID_ANY)
-        max=wx.TextCtrl(self,wx.ID_ANY)
+        global min,max,interval
+        min=wx.TextCtrl(self,wx.ID_ANY,'0')
+        max=wx.TextCtrl(self,wx.ID_ANY,'0')
         interval=wx.TextCtrl(self,wx.ID_ANY,'7')
         font=wx.Font(17,wx.FONTFAMILY_DEFAULT,wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL)
         min.SetFont(font)
@@ -57,6 +82,7 @@ class TextBoxPanel(wx.Panel):
         min_text=wx.StaticText(self,wx.ID_ANY,'開始')
         max_text=wx.StaticText(self,wx.ID_ANY,'終了')
         interval_text=wx.StaticText(self,wx.ID_ANY,'間隔')
+
         font2=wx.Font(13,wx.FONTFAMILY_DEFAULT,wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL)
         min_text.SetFont(font2)
         max_text.SetFont(font2)
@@ -79,8 +105,47 @@ class TextBoxPanel(wx.Panel):
         self.SetSizer(layout)
 
 #イベント関連
+#CSV更新
 def click_update_button(event):
-    self.SetStatusText('Click!')
+    url = 'https://covid19.mhlw.go.jp/public/opendata/newly_confirmed_cases_daily.csv'
+    try:
+        data=pd.read_csv(url)
+        pd.DataFrame(data).to_csv('COVID_Data.csv')
+        wx.MessageBox('CSVファイルを更新しました．','メッセージ')
+        Sum_text.SetLabel('データ数:{0}'.format(len(data[data["Prefecture"]=='ALL'])))
+    except:
+        wx.MessageBox(u'CSVファイルが取得できませんでした．', u'エラー', wx.ICON_ERROR)
+
+#グラフ表示
+def click_showgraph_button(event):
+    try:
+        data=pd.read_csv("COVID_Data.csv")
+    except:
+        wx.MessageBox(u'CSVファイルが存在しません．CSVファイルを更新してください．', u'エラー', wx.ICON_ERROR)
+    print(State_combobox.GetStringSelection())
+    if(State_combobox.GetStringSelection()==""):
+        wx.MessageBox(u'県を選択してください．',u'エラー',wx.ICON_ERROR)
+        return
+    elif(State_combobox.GetStringSelection()=="すべて"):
+        State='ALL'
+    else:
+        State=State_combobox.GetStringSelection()
+
+    data=data[data["Prefecture"]==State]
+    left=data['Date']
+    height=data['Newly confirmed cases']
+    flg=plt.figure(figsize=(10.0,8.0))
+    ax=flg.add_subplot(111)
+    plt.tight_layout()
+    ax.set_position([0.1,0.15,0.8,0.8])
+    plt.bar(left,height,width=1.0,edgecolor="black",linewidth=0.1,label="Positive")
+    plt.xlabel('Date')
+    plt.ylabel('Positive')
+    plt.xticks(rotation=90)
+    plt.xticks(np.arange(0,len(data),int(interval.GetValue())))
+    plt.grid(b=True,axis='y',color='#666666',linestyle='-')
+    plt.show()
+#url='C:\\User
 
 if __name__ == '__main__':
     app=wx.App()
@@ -89,7 +154,6 @@ if __name__ == '__main__':
     app.MainLoop()
 
 """
-url = 'https://covid19.mhlw.go.jp/public/opendata/newly_confirmed_cases_daily.csv'
 def showgraph(start_day,end_day,interval):
     data=getCSV().loc[int(start_day):int(end_day)]
     df = pd.DataFrame(data)
