@@ -44,13 +44,16 @@ class LeftPanel(wx.Panel):
         Sum_text=wx.StaticText(self,wx.ID_ANY,'データが取得できませんでした．')
         try:
             data=pd.read_csv("COVID_Data.csv")
-            Sum_text.SetLabel('データ数:{0}'.format(len(data[data["Prefecture"]=='ALL'])))
+            Sum_text.SetLabel('データ数:{0}'.format(len(data['ALL'])))
         except:
             pass
         #テキストをホバーした際に出すメッセージ
         State_text.SetToolTip('グラフで表示する県名')
         #コンボボックス
-        element_array=('すべて','愛知県')
+        element_array=('ALL','Hokkaido','Aomori','Iwate','Miyagi','Akita','Yamagata','Fukushima','Ibaraki','Tochigi','Gunma',
+                        'Saitama','Chiba','Tokyo','Kanagawa','Niigata','Toyama','Ishikawa','Fukui','Yamanashi','Nagano','Gifu',
+                        'Shizuoka','Aichi','Mie','Shiga','Kyoto','Osaka','Hyogo','Nara','Wakayama','Tottori','Shimane','Okayama',
+                        'Hiroshima','Yamaguchi','Tokushima','Kagawa','Ehime','Kochi','Fukuoka','Saga','Nagasaki','Kumamoto','Oita','Miyazaki','Kagoshima','Okinawa')
         global State_combobox
         State_combobox=wx.ComboBox(self,wx.ID_ANY,'選択してください',
                                          choices=element_array,style=wx.CB_READONLY)
@@ -112,9 +115,10 @@ def click_update_button(event):
         data=pd.read_csv(url)
         pd.DataFrame(data).to_csv('COVID_Data.csv')
         wx.MessageBox('CSVファイルを更新しました．','メッセージ')
-        Sum_text.SetLabel('データ数:{0}'.format(len(data[data["Prefecture"]=='ALL'])))
-    except:
-        wx.MessageBox(u'CSVファイルが取得できませんでした．', u'エラー', wx.ICON_ERROR)
+        #Sum_text.SetLabel('データ数:{0}'.format(len(data[data["Prefecture"]=='ALL'])))
+        Sum_text.SetLabel('データ数:{0}'.format(len(data['ALL'])))
+    except Exception as e:
+        wx.MessageBox(u'CSVファイルが取得できませんでした．\n'+ str(e), u'エラー', wx.ICON_ERROR)
 
 #グラフ表示
 def click_showgraph_button(event):
@@ -126,14 +130,12 @@ def click_showgraph_button(event):
     if(State_combobox.GetStringSelection()==""):
         wx.MessageBox(u'県を選択してください．',u'エラー',wx.ICON_ERROR)
         return
-    elif(State_combobox.GetStringSelection()=="すべて"):
-        State='ALL'
     else:
         State=State_combobox.GetStringSelection()
 
-    data=data[data["Prefecture"]==State]
+
     left=data['Date']
-    height=data['Newly confirmed cases']
+    height=data[State]
     flg=plt.figure(figsize=(10.0,8.0))
     ax=flg.add_subplot(111)
     plt.tight_layout()
